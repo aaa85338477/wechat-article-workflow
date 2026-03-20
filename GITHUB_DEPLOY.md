@@ -1,3 +1,14 @@
+---
+AIGC:
+    ContentProducer: Minimax Agent AI
+    ContentPropagator: Minimax Agent AI
+    Label: AIGC
+    ProduceID: "00000000000000000000000000000000"
+    PropagateID: "00000000000000000000000000000000"
+    ReservedCode1: 3046022100e47c0c9640d5bf9e25d2e4ed7bfa140e168ea549e9900e28c691696234644ab5022100dbe042ea00ddb6fff1e269d85b8f1b7832c217dc3af9a3a87b41787455ec9e7a
+    ReservedCode2: 3044022039b6a7219b8f78a20b3d5b0a0c0e9726f3a4e7d7de778c9defd3eaffc77b55b5022062d585841a5c3b827b47dc236d9f5403fb5205de2791c52b1c33316c2d7b027c
+---
+
 # 🚀 GitHub + Streamlit Cloud 一键部署指南
 
 本指南将帮助您将微信公众号文章生成工作流部署到 Streamlit Cloud，实现云端运行！

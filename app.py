@@ -70,29 +70,63 @@ DEFAULT_REVIEWER_PROMPT = """你是一位资深的文章审稿人，负责审核
 
 # ============== 工具函数 ==============
 def extract_content_from_url(url: str) -> Dict[str, Any]:
-    """从URL提取内容"""
+    """从URL提取内容（使用 requests + beautifulsoup4）"""
     try:
-        import trafilatura
+        import requests
+        from bs4 import BeautifulSoup
 
-        downloaded = trafilatura.fetch_url(url)
-        if downloaded:
-            text = trafilatura.extract(downloaded)
-            if text:
-                # 提取标题
-                from bs4 import BeautifulSoup
-                soup = BeautifulSoup(downloaded, 'html.parser')
-                title = soup.title.string if soup.title else "未获取到标题"
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
 
-                return {
-                    "success": True,
-                    "title": title.strip() if title else "未获取到标题",
-                    "content": text,
-                    "url": url
-                }
+        response = requests.get(url, headers=headers, timeout=30)
+        response.raise_for_status()
+
+        # 设置编码
+        response.encoding = response.apparent_encoding or 'utf-8'
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # 提取标题
+        title = ""
+        if soup.title:
+            title = soup.title.string
+        else:
+            h1 = soup.find('h1')
+            if h1:
+                title = h1.get_text(strip=True)
+
+        # 移除脚本和样式
+        for tag in soup(['script', 'style', 'nav', 'footer', 'header']):
+            tag.decompose()
+
+        # 获取文本内容
+        text = soup.get_text(separator='\n', strip=True)
+
+        # 清理空行
+        lines = [line.strip() for line in text.split('\n') if line.strip()]
+        text = '\n'.join(lines)
+
+        # 移除过短的行（通常是噪声）
+        lines = [line for line in text.split('\n') if len(line) > 20]
+        text = '\n'.join(lines)
+
+        if not text or len(text) < 100:
+            return {
+                "success": False,
+                "error": "提取的内容太少，请尝试其他链接或手动粘贴内容"
+            }
 
         return {
+            "success": True,
+            "title": title.strip() if title else "未获取到标题",
+            "content": text,
+            "url": url
+        }
+    except requests.exceptions.RequestException as e:
+        return {
             "success": False,
-            "error": "无法提取内容，请确保URL可访问且包含文本内容"
+            "error": f"网络请求失败: {str(e)}"
         }
     except Exception as e:
         return {
