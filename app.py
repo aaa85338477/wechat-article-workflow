@@ -623,6 +623,20 @@ def main():
         layout="wide"
     )
 
+    # 初始化session state - 防止页面重置问题
+    if "workflow_completed" not in st.session_state:
+        st.session_state.workflow_completed = False
+    if "final_article" not in st.session_state:
+        st.session_state.final_article = None
+    if "draft" not in st.session_state:
+        st.session_state.draft = None
+    if "review" not in st.session_state:
+        st.session_state.review = None
+    if "extracted_content" not in st.session_state:
+        st.session_state.extracted_content = None
+    if "manual_content" not in st.session_state:
+        st.session_state.manual_content = None
+
     # 加载提示词配置
     prompts = load_prompts()
 
@@ -849,7 +863,51 @@ def main():
     with tab3:
         st.header("⚙️ 多智能体工作流")
 
-        if not content_to_show:
+        # 检查是否有已完成的工作流结果
+        if st.session_state.workflow_completed and st.session_state.final_article:
+            # 显示完成状态和结果
+            st.success("✅ 工作流已完成！")
+
+            # 显示最终结果预览
+            st.subheader("📄 最终文章预览")
+            article_data = parse_article(st.session_state.final_article)
+            st.markdown(f"**标题：** {article_data['title'] or '无标题'}")
+            with st.expander("👁️ 预览完整内容", expanded=True):
+                st.markdown(article_data['body'])
+
+            # 提供操作按钮
+            col1, col2 = st.columns(2)
+            with col1:
+                st.button("📋 查看详细结果",
+                         on_click=lambda: st.session_state.update({"show_results_tab": True}),
+                         use_container_width=True)
+            with col2:
+                if st.button("🔄 重新开始", use_container_width=True):
+                    # 重置所有状态
+                    st.session_state.workflow_completed = False
+                    st.session_state.final_article = None
+                    st.session_state.draft = None
+                    st.session_state.review = None
+                    st.rerun()
+
+            # 如果有审稿结果，也显示出来
+            if st.session_state.review:
+                st.divider()
+                st.subheader("🔍 审稿评分")
+                review = st.session_state.review
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("准确性", review.get("accuracy_score", "-"))
+                with col2:
+                    st.metric("完整性", review.get("completeness_score", "-"))
+                with col3:
+                    st.metric("可读性", review.get("readability_score", "-"))
+                with col4:
+                    score = review.get("overall_score", 0)
+                    st.metric("总分", score,
+                             delta_color="normal" if score >= 8 else "inverse")
+
+        elif not content_to_show:
             st.info("👆 请先在「输入」标签页提取内容")
         else:
             if not api_key:
@@ -972,10 +1030,22 @@ def main():
                             st.success("✅ 稿件已定稿！")
                             st.session_state.final_article = draft
 
+                        # 标记工作流完成
+                        st.session_state.workflow_completed = True
+
                         # 完成
                         status_text.text("✅ 工作流完成！")
                         progress_bar.progress(100)
-                        st.balloons()
+
+                        # 显示结果预览
+                        st.divider()
+                        st.subheader("📄 最终文章预览")
+                        article_data = parse_article(st.session_state.final_article)
+                        st.markdown(f"**标题：** {article_data['title'] or '无标题'}")
+                        with st.expander("👁️ 预览完整内容", expanded=True):
+                            st.markdown(article_data['body'])
+
+                        st.info("💡 请到「结果」标签页查看完整结果和导出选项")
 
                     except Exception as e:
                         st.error(f"❌ 执行出错: {str(e)}")
@@ -984,7 +1054,7 @@ def main():
     with tab4:
         st.header("📄 生成结果")
 
-        if "final_article" not in st.session_state:
+        if not st.session_state.final_article:
             st.info("👆 请先执行工作流生成文章")
         else:
             article_data = parse_article(st.session_state.final_article)
@@ -1056,8 +1126,22 @@ def main():
                     st.caption("需要 python-docx 库")
 
             with col3:
-                # 复制到剪贴板 - 使用文本框方式
-                st.text_area("📋 复制全文（选中后 Ctrl+C）", value=md_content, height=100, key="copy_text")
+                # 复制到剪贴板 - 使用JavaScript实现更好的复制功能
+                st.markdown("""
+                <script>
+                function copyToClipboard(text) {
+                    navigator.clipboard.writeText(text).then(function() {
+                        console.log('Copying to clipboard was successful!');
+                    }, function(err) {
+                        console.error('Could not copy text: ', err);
+                    });
+                }
+                </script>
+                """, unsafe_allow_html=True)
+
+                # 使用按钮提示用户复制
+                st.code(md_content, language="markdown", height=100)
+                st.caption("💡 选中上方内容后按 Ctrl+C 复制")
 
             # 发送飞书
             if feishu_webhook:
