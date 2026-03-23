@@ -1037,8 +1037,8 @@ def main():
                     st.caption("需要 python-docx 库")
 
             with col3:
-                # 复制到剪贴板
-                st.button("📋 复制全文", on_click=lambda: st.clipboard(md_content), use_container_width=True)
+                # 复制到剪贴板 - 使用文本框方式
+                st.text_area("📋 复制全文（选中后 Ctrl+C）", value=md_content, height=100, key="copy_text")
 
             # 发送飞书
             if feishu_webhook:
