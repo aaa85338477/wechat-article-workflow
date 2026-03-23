@@ -931,8 +931,27 @@ def main():
                             for s in review["strengths"]:
                                 st.markdown(f"- {s}")
 
-                        # Step 4: 修改润色
-                        if review.get("overall_score", 0) < 8:
+                        # Step 4: 修改润色 - 由用户决定是否修改
+                        st.divider()
+                        st.subheader("✂️ 最终确认")
+
+                        # 显示分数提示
+                        score = review.get("overall_score", 0)
+                        if score >= 8:
+                            st.info(f"📊 审稿评分：{score}/10，文章质量良好")
+                        else:
+                            st.warning(f"📊 审稿评分：{score}/10，建议进行修改")
+
+                        # 让用户选择是否修改
+                        revise_choice = st.radio(
+                            "是否需要修改稿件？",
+                            options=["✅ 直接定稿", "✏️ 根据审稿意见修改"],
+                            index=0,
+                            horizontal=True,
+                            help="无论评分高低，您都可以自由选择是否修改"
+                        )
+
+                        if revise_choice == "✏️ 根据审稿意见修改":
                             status_text.text("✂️ Step 4/4：根据意见修改文章...")
                             progress_bar.progress(75)
                             st.info("正在根据审稿意见修改文章...")
@@ -950,7 +969,7 @@ def main():
                                 st.warning(f"⚠️ 修改失败，使用初稿: {revise_result.get('error', '')}")
                                 st.session_state.final_article = draft
                         else:
-                            st.success("🎉 文章质量优秀，无需修改！")
+                            st.success("✅ 稿件已定稿！")
                             st.session_state.final_article = draft
 
                         # 完成
