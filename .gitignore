@@ -9,3 +9,7 @@ venv/
 .env
 *.db
 .DS_Store
+
+# 用户配置文件（包含 API 密钥等敏感信息）
+prompts.json
+!prompts.json.example
