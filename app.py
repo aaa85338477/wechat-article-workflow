@@ -673,8 +673,13 @@ def main():
         # 查看详细提示词
         with st.expander("📋 查看角色提示词详情"):
             for editor in editor_options:
-                with st.expander(f"{editor['name']}"):
-                    st.text(editor.get("prompt", "")[:500] + "..." if len(editor.get("prompt", "")) > 500 else editor.get("prompt", ""))
+                st.markdown(f"**{editor['name']}**")
+                st.caption(editor.get("description", ""))
+                prompt_text = editor.get("prompt", "")[:300]
+                if len(editor.get("prompt", "")) > 300:
+                    prompt_text += "..."
+                st.text(prompt_text)
+                st.divider()
 
         st.divider()
 
