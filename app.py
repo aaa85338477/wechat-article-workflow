@@ -463,7 +463,17 @@ def review_draft(
             review = json.loads(result)
             return {"success": True, "review": review}
         except:
-            return {"success": True, "review": result, "raw": True}
+            # 尝试从文本中提取 JSON
+            import re
+            json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', result, re.DOTALL)
+            if json_match:
+                try:
+                    review = json.loads(json_match.group(0))
+                    return {"success": True, "review": review}
+                except:
+                    pass
+            # 如果还是失败，返回原始文本作为错误信息
+            return {"success": False, "error": f"审稿结果格式解析失败，返回内容: {result[:500]}..."}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -895,10 +905,6 @@ def main():
                             st.stop()
 
                         review = review_result.get("review", {})
-                        if isinstance(review, str):
-                            st.error("审稿结果解析失败")
-                            st.stop()
-
                         st.session_state.review = review
                         st.success(f"✅ 审稿完成，总分：{review.get('overall_score', '?')}/10")
 
