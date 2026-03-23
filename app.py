@@ -861,16 +861,24 @@ def main():
         # 显示选中角色的提示词
         st.session_state.editor_prompt = selected_editor.get("prompt", "") if selected_editor else ""
 
-        # 查看详细提示词
-        with st.expander("📋 查看角色提示词详情"):
-            for editor in editor_options:
-                st.markdown(f"**{editor['name']}**")
-                st.caption(editor.get("description", ""))
-                prompt_text = editor.get("prompt", "")[:300]
-                if len(editor.get("prompt", "")) > 300:
-                    prompt_text += "..."
-                st.text(prompt_text)
-                st.divider()
+        # 查看详细提示词 - 改用selectbox选择，避免嵌套expander
+        st.selectbox(
+            "📋 选择查看提示词详情",
+            options=["（不查看）"] + [f"{e['name']} - {e['description'][:20]}..." for e in editor_options],
+            key="selected_editor_for_view"
+        )
+        if st.session_state.get("selected_editor_for_view") and st.session_state.selected_editor_for_view != "（不查看）":
+            # 找到选中的编辑器
+            selected_name = st.session_state.selected_editor_for_view.split(" - ")[0]
+            selected_editor_for_view = next((e for e in editor_options if e["name"] == selected_name), None)
+            if selected_editor_for_view:
+                st.text_area(
+                    "提示词内容（只读）",
+                    value=selected_editor_for_view.get("prompt", "")[:1000],
+                    height=200,
+                    disabled=True,
+                    key="prompt_view_text"
+                )
 
         st.divider()
 
